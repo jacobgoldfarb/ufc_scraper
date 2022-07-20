@@ -3,18 +3,20 @@ from bs4 import BeautifulSoup
 
 import downloader
 from models.ranking import Ranking
-from db.data_inserter import get_database
+from persistence.db import get_database
 
 RANKINGS_URL = "https://www.ufc.com/rankings"
 
 def populate_rankings():
     db = get_database()
-    db.connect()
     rankings_page = downloader.download(RANKINGS_URL)
+    rankings = parse_page_for_rankings(rankings_page)
+    db.add_fighter_from_rankings(rankings)
+
+def parse_page_for_rankings(rankings_page):
     groups_html = get_html_by_group(rankings_page)
-    for html in groups_html[1:]:
-        ranking = get_ranking_from_html(html)
-        db.add_fighter_from_ranking(ranking)
+    rankings = [get_ranking_from_html(html) for html in groups_html]
+    return rankings
 
 def get_ranking_from_html(html):
     division_name = html.find_all("h4")[0].text.strip()
